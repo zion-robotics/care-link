@@ -4,6 +4,7 @@ import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
 import PatientLayout from "./layouts/PatientLayout"
 import PatientDashboard from "./pages/patient/Dashboard"
+import Consent from "./pages/patient/Consent"
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
   const { user } = useAuth()
@@ -22,6 +23,7 @@ function AppRoutes() {
       <Route path="/register" element={user ? <Navigate to={user.role === "patient" ? "/patient/dashboard" : "/provider/dashboard"} /> : <Register />} />
       <Route path="/patient" element={<ProtectedRoute role="patient"><PatientLayout /></ProtectedRoute>}>
         <Route path="dashboard" element={<PatientDashboard />} />
+        <Route path="consent" element={<Consent />} />
       </Route>
       <Route path="/provider/*" element={<ProtectedRoute role="provider"><div>Provider shell coming soon</div></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/login" replace />} />
