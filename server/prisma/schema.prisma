@@ -1,15 +1,227 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  patient
+  doctor
+  lab
+  pharmacy
+}
+
+enum ConsentStatus {
+  pending
+  approved
+  denied
+}
+
+enum InsuranceStatus {
+  uninsured
+  insured
+  nhis
+}
+
+enum PrescriptionStatus {
+  active
+  fulfilled
+  expired
+}
+
+enum AppointmentType {
+  in_person
+  telemedicine
+}
+
+enum AppointmentStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum ConsultationStatus {
+  open
+  closed
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patientProfile      PatientProfile?
+  providerProfile     ProviderProfile?
+  consentsAsPatient   ConsentRequest[] @relation("PatientConsents")
+  consentsAsProvider  ConsentRequest[] @relation("ProviderConsents")
+  recordsAsPatient    MedicalRecord[]  @relation("PatientRecords")
+  recordsAsDoctor     MedicalRecord[]  @relation("DoctorRecords")
+  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+  prescriptionsAsDoctor  Prescription[] @relation("DoctorPrescriptions")
+  labResultsAsPatient    LabResult[]   @relation("PatientLabResults")
+  labResultsAsLab        LabResult[]   @relation("LabLabResults")
+  appointmentsAsPatient  Appointment[] @relation("PatientAppointments")
+  appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+  consultationsAsPatient Consultation[] @relation("PatientConsultations")
+  consultationsAsDoctor  Consultation[] @relation("DoctorConsultations")
+  messages               ConsultationMessage[]
+  notifications          Notification[]
+  auditLogsAsPatient     ConsentAuditLog[] @relation("AuditPatient")
+  auditLogsAsProvider    ConsentAuditLog[] @relation("AuditProvider")
+}
+
+model PatientProfile {
+  id                String          @id @default(uuid())
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName          String
+  dateOfBirth       DateTime?
+  gender            String?
+  bloodGroup        String?
+  genotype          String?
+  phone             String?
+  address           String?
+  insuranceStatus   InsuranceStatus @default(uninsured)
+  insuranceProvider String?
+  insuranceNumber   String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model ProviderProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName     String
+  facilityName String?
+  licenseNumber String?
+  specialty    String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ConsentRequest {
+  id          String        @id @default(uuid())
+  patientId   String
+  patient     User          @relation("PatientConsents", fields: [patientId], references: [id])
+  providerId  String
+  provider    User          @relation("ProviderConsents", fields: [providerId], references: [id])
+  status      ConsentStatus @default(pending)
+  reason      String
+  requestedAt DateTime      @default(now())
+  respondedAt DateTime?
+  expiresAt   DateTime?
+  auditLogs   ConsentAuditLog[]
+}
+
+model ConsentAuditLog {
+  id         String         @id @default(uuid())
+  consentId  String
+  consent    ConsentRequest @relation(fields: [consentId], references: [id])
+  patientId  String
+  patient    User           @relation("AuditPatient", fields: [patientId], references: [id])
+  providerId String
+  provider   User           @relation("AuditProvider", fields: [providerId], references: [id])
+  action     String
+  recordId   String?
+  accessedAt DateTime       @default(now())
+}
+
+model MedicalRecord {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   User     @relation("PatientRecords", fields: [patientId], references: [id])
+  doctorId  String
+  doctor    User     @relation("DoctorRecords", fields: [doctorId], references: [id])
+  title     String
+  diagnosis String?
+  notes     String?
+  visitDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Prescription {
+  id          String             @id @default(uuid())
+  patientId   String
+  patient     User               @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  doctorId    String
+  doctor      User               @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  medications Json
+  notes       String?
+  status      PrescriptionStatus @default(active)
+  issuedAt    DateTime           @default(now())
+  fulfilledAt DateTime?
+  expiresAt   DateTime?
+}
+
+model LabResult {
+  id            String   @id @default(uuid())
+  patientId     String
+  patient       User     @relation("PatientLabResults", fields: [patientId], references: [id])
+  labId         String
+  lab           User     @relation("LabLabResults", fields: [labId], references: [id])
+  testName      String
+  resultSummary String?
+  fileUrl       String?
+  testDate      DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String
+  patient     User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  providerId  String
+  provider    User              @relation("ProviderAppointments", fields: [providerId], references: [id])
+  type        AppointmentType   @default(in_person)
+  status      AppointmentStatus @default(scheduled)
+  scheduledAt DateTime
+  notes       String?
+  createdAt   DateTime          @default(now())
+  consultation Consultation?
+}
+
+model Consultation {
+  id            String             @id @default(uuid())
+  appointmentId String             @unique
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id])
+  patientId     String
+  patient       User               @relation("PatientConsultations", fields: [patientId], references: [id])
+  doctorId      String
+  doctor        User               @relation("DoctorConsultations", fields: [doctorId], references: [id])
+  status        ConsultationStatus @default(open)
+  summary       String?
+  startedAt     DateTime           @default(now())
+  closedAt      DateTime?
+  messages      ConsultationMessage[]
+}
+
+model ConsultationMessage {
+  id             String       @id @default(uuid())
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  message        String
+  sentAt         DateTime     @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
