@@ -2,6 +2,10 @@ import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 import authRouter from "./routes/auth"
+import patientsRouter from "./routes/patients"
+import recordsRouter from "./routes/records"
+import prescriptionsRouter from "./routes/prescriptions"
+import labsRouter from "./routes/labs"
 
 dotenv.config()
 
@@ -10,6 +14,10 @@ app.use(cors())
 app.use(express.json())
 
 app.use("/api/auth", authRouter)
+app.use("/api/patients", patientsRouter)
+app.use("/api/records", recordsRouter)
+app.use("/api/prescriptions", prescriptionsRouter)
+app.use("/api/labs", labsRouter)
 
 app.get("/api/health", (_, res) => res.json({ status: "ok" }))
 
