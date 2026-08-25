@@ -6,6 +6,7 @@ import patientsRouter from "./routes/patients"
 import recordsRouter from "./routes/records"
 import prescriptionsRouter from "./routes/prescriptions"
 import labsRouter from "./routes/labs"
+import consentRouter from "./routes/consent"
 
 dotenv.config()
 
@@ -18,6 +19,7 @@ app.use("/api/patients", patientsRouter)
 app.use("/api/records", recordsRouter)
 app.use("/api/prescriptions", prescriptionsRouter)
 app.use("/api/labs", labsRouter)
+app.use("/api/consent", consentRouter)
 
 app.get("/api/health", (_, res) => res.json({ status: "ok" }))
 
