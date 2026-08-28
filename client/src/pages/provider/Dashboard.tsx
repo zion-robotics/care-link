@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react"
 import api from "../../lib/api"
-import { useAuth } from "../../lib/auth"
 
 export default function ProviderDashboard() {
-  const { user } = useAuth()
   const [analytics, setAnalytics] = useState<any>(null)
 
   useEffect(() => {
